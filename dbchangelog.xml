@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>  
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:ext="http://www.liquibase.org/xml/ns/dbchangelog-ext"
+    xmlns:pro="http://www.liquibase.org/xml/ns/pro"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd
+        http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd
+        http://www.liquibase.org/xml/ns/pro http://www.liquibase.org/xml/ns/pro/liquibase-pro-latest.xsd"
+    logicalFilePath="dbchangelog.xml">
+
+    <changeSet  id="1"  author="diphuaji">
+        <createTable tableName="adjusted_daily_quote">
+            <column name="symbol" type="VARCHAR(50)">
+                <constraints primaryKey="true"/>
+            </column>
+            <column name="date" type="DATE">
+                <constraints primaryKey="true"/>
+            </column>
+            <column name="open" type="DOUBLE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="high" type="DOUBLE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="low" type="DOUBLE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="close" type="DOUBLE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="dividends" type="DOUBLE" defaultValue="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="splits" type="DOUBLE" defaultValue="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="volume" type="BIGINT UNSIGNED">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+</databaseChangeLog>
