@@ -45,14 +45,7 @@ class DataFacade:
             cls.__instance = cls.__new__(cls)
         return cls.__instance
 
-    def get_daily_price(
-            self,
-            symbol:str,
-            start_date: Optional[date] = None,
-            end_date: Optional[date] = None,
-            provider='yahoo',
-            chunk_size=5000
-    ) -> Iterable[List[Dict]]:
+    def get_daily_price(self, symbol:str, start_date: Optional[date] = None, end_date: Optional[date] = None, provider='yahoo', chunk_size=5000) -> Iterable[List[Dict]]:
         start_date = start_date if start_date else datetime.date.today() - datetime.timedelta(days=7)
         end_date = end_date if end_date else datetime.date.today()
         if provider == 'yahoo':
@@ -64,7 +57,7 @@ class DataFacade:
                 adj_ohlc=True
             ).reset_index().to_dict('records')
 
-            for chunk in more_itertools.chunked(map(lambda x: DailyWeeklyTickerQuote.from_yahoo_quote(x), adjusted_history), chunk_size):
+            for chunk in more_itertools.chunked(adjusted_history, 5000):
                 yield chunk
         else:
             raise Exception(f'provider not implemented: {provider}.')
