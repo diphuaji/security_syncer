@@ -47,7 +47,7 @@ with open('sample_data/stock_pool.csv', newline='') as csvfile:
     time_periods = math.ceil(((today-start_date).days + 1)/ five_years)
     logging.info(f'Fetching data from %s to %s.', start_date, today)
     for securities in stock_chunks():
-        tickers = ' '.join([s.ticker for s in securities])
+        tickers = ' '.join([s.symbol for s in securities])
         # tickers = ['ABBV']
         ticker = Ticker(tickers)
         logging.info(f'Fetching data for %s.', tickers)

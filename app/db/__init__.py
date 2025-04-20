@@ -7,8 +7,9 @@ from sqlalchemy import and_
 from sqlalchemy.dialects.sqlite import insert
 from sqlalchemy.sql.expression import func
 
+from app.data_model import Security
 from app.db.tables import DailyWeeklyTickerQuoteRow, adjusted_daily_price, adjusted_weekly_price, adjusted_5m_price, \
-    intra_day_5m_metadata, intra_day_30m_metadata
+    intra_day_5m_metadata, intra_day_30m_metadata, security
 
 
 def get_adjusted_data_engine(start_date: Optional[datetime.date] = None,
@@ -30,6 +31,10 @@ def get_meta_engine() -> Engine:
     file_path = 'data/meta.db'
     return create_engine(f'sqlite+pysqlite:///{file_path}')
 
+def get_fundamental_data_engine() -> Engine:
+    file_path = 'data/fundamental_data.db'
+    return create_engine(f'sqlite+pysqlite:///{file_path}')
+
 
 def get_adjusted_5m_egnine() -> Engine:
     file_path = 'data/adjusted_5m_data.db'
@@ -39,6 +44,34 @@ def get_adjusted_5m_egnine() -> Engine:
 def get_adjusted_30m_egnine() -> Engine:
     file_path = 'data/adjusted_5m_data.db'
     return create_engine(f'sqlite+pysqlite:///{file_path}')
+
+
+class SecurityDao:
+    t = security
+
+    def __init__(self, engine: Engine):
+        self.engine = engine
+
+    def insert(self, records: List[Security]):
+        columns_not_for_update = [
+            'id',
+            'created_at'
+        ]
+        ts = datetime.datetime.now(datetime.timezone.utc)
+        with self.engine.begin() as txn:
+            stmt = insert(self.t)
+            txn.execute(
+                stmt.on_conflict_do_update(
+                    index_elements=[self.t.c.symbol, self.t.c.exchange],
+                    set_={col.name: stmt.excluded[col.name] for col in self.t.columns if col.name not in columns_not_for_update}
+                ), [
+                   dict(r.as_dict(), **{
+                       'created_at': ts,
+                       'updated_at': ts
+                    }) for r in records
+                ]
+            )
+            txn.commit()
 
 
 class AdjustedDailyWeeklyDaoMixin:

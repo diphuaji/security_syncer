@@ -21,7 +21,7 @@ def ssec_stock_chunks(size=50) -> typing.Iterable[typing.List[Security]]:
             ticker_data = csv.DictReader(csvfile)
             for t in ticker_data:
                 exchange='ssec'
-                yield Security(ticker=t['ticker'], exchange=exchange)
+                yield Security(name=t['ticker'],symbol=t['ticker'], exchange=exchange)
     return more_itertools.chunked(generate(), size)
 
 
@@ -31,13 +31,14 @@ def stock_chunks(size=50) -> typing.Iterable[typing.List[Security]]:
         with open('data/stock_pool.csv', newline='') as csvfile:
             ticker_data = csv.DictReader(csvfile)
             for t in ticker_data:
-                yield Security(ticker=t['Symbol'], exchange='')
+                yield Security(name=t['Symbol'], symbol=t['Symbol'], exchange='')
 
         with open('data/tse_stock_pool.csv', newline='') as csvfile:
             ticker_data = csv.DictReader(csvfile)
             for t in ticker_data:
                 if t['Symbol'].endswith('-T'):
-                    yield Security(ticker=re.sub(r"-T$", ".TO", t['Symbol']), exchange='TSE') 
+                    symbol = re.sub(r"-T$", ".TO", t['Symbol'])
+                    yield Security(name=symbol, symbol=symbol, exchange='TSE')
     
     return more_itertools.chunked(generate(), size)
 

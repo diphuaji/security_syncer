@@ -1,13 +1,21 @@
+import csv
 import datetime
 import math
 from typing import Any, Dict, Iterable, List
 import more_itertools
 from typing import Optional
 from typing import NamedTuple
+from lxml import etree
+
+import pandas
 from yahooquery import Ticker
 from datetime import date
 from pandas import Timestamp
 from dataclasses import dataclass
+import logging
+
+from app.constants import SECTOR_MAPPING_YAHOO_TO_GICS, INDUSTRY_MAPPING_YAHOO_TO_GICS
+from app.data_model import Security
 from app.interfaces import DataClassMixin
 
 
@@ -44,6 +52,70 @@ class DataFacade:
         if not cls.__instance:
             cls.__instance = cls.__new__(cls)
         return cls.__instance
+
+    def get_nyse_stocks(self) -> Iterable[Security]:
+        with open('data/stock_pool.csv', newline='') as csvfile:
+            five_years = 5 * 365
+            delta = datetime.timedelta(days=five_years)
+            ticker_data = csv.DictReader(csvfile)
+            for t in ticker_data:
+                yield Security(name=t['Symbol'], symbol=t['Symbol'], exchange='NYSE')
+
+    def get_russel_2000_stocks(self) -> Iterable[str]:
+        with open('data/roussel_2000.html', encoding='utf8') as f:
+            parser = etree.HTMLParser()
+            html_root = etree.fromstring(f.read(), parser)
+            tr_path = etree.XPath("//tr")
+            ticker_path = etree.XPath("td[1]/a[@class='profile-link']/div[2]/text()")
+            for e in tr_path(html_root):
+                data = ticker_path(e)
+                if len(data):
+                    print(data[0])
+
+    def get_fundamentals(self, symbols: list[str], provider='yahoo'):
+        if provider == 'yahoo':
+            tickers = Ticker(symbols)
+
+
+    def get_security_details(self, symbols: list[str], provider='yahoo') -> list[Security]:
+        if provider == 'yahoo':
+            tickers = Ticker(symbols)
+
+            # Fetch profile and key stats
+            summary = tickers.asset_profile
+            quotes = tickers.quote_type
+            price = tickers.price
+            key_stats = tickers.key_stats
+
+            # Parse results
+            data = []
+            for symbol in symbols:
+                try:
+                    profile = summary.get(symbol, {}) or {}
+                    quote = quotes.get(symbol, {}) or {}
+                    stats = key_stats.get(symbol, {}) or {}
+                    price_info = price.get(symbol, {}) or {}
+
+                    logging.debug('Original sector: %s', profile.get("sector"))
+                    logging.debug('Original industry: %s', profile.get("industry"))
+                    data.append(Security(
+                        symbol=symbol,
+                        name=quote.get("longName", ""),
+                        exchange=quote.get("exchange", "UNKNOWN"),
+                        asset_class=profile.get("quoteType", "EQUITY"),
+                        currency=price_info.get("currency", "USD"),
+                        country=profile.get("country", "US"),
+                        sector=SECTOR_MAPPING_YAHOO_TO_GICS.get(profile.get("sector"), 'UNKNOWN'),
+                        industry=INDUSTRY_MAPPING_YAHOO_TO_GICS.get(profile.get("industry"), 'UNKNOWN'),
+                        isin=stats.get("isin") or profile.get("isin") or price_info.get("isin"),
+                        cusip=stats.get("cusip"),
+                        ipo_date=profile.get("ipoDate"),
+                        is_active=True  # Assume active unless other data says otherwise
+                    ))
+                except Exception as e:
+                    print(f"Error processing {symbol}: {e}")
+            return data
+        raise NotImplementedError(f'The provider - {provider} does not support fetching security details.')
 
     def get_daily_price(self, symbol:str, start_date: Optional[date] = None, end_date: Optional[date] = None, provider='yahoo', chunk_size=5000) -> Iterable[List[Dict]]:
         start_date = start_date if start_date else datetime.date.today() - datetime.timedelta(days=7)
